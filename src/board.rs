@@ -43,7 +43,17 @@ pub enum CoordError {
 // Study DataError in data.rs: it is a finished example of this impl.
 impl fmt::Display for CoordError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TODO: {self:?}")
+        match self {
+            CoordError::BadFormat => {
+                write!(f, "type a column letter and a row number, like B7")
+            }
+            CoordError::ColumnOutOfRange(c) => {
+                write!(f, "column {} is off the board (A-J)", c)
+            }
+            CoordError::RowOutOfRange(r) => {
+                write!(f, "row {} is off the board (1-10)", r)
+            }
+        }
     }
 }
 
@@ -180,22 +190,31 @@ pub fn all_sunk(board: &Board) -> bool {
 // Use a match on parse::<usize>(), not map_err.
 pub fn parse_coord(text: &str) -> Result<(usize, usize), CoordError> {
     let text = text.trim();
-    let first = match text.chars().next() {
-        Some(c) => c,
-        None => return Err(CoordError::BadFormat),
+    let mut chars = text.chars();
+
+   
+    let letter = match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() => c.to_ascii_uppercase(),
+        _ => return Err(CoordError::BadFormat),
     };
-    if !first.is_ascii_alphabetic() {
-        return Err(CoordError::BadFormat);
-    }
-    let row_number = match text[1..].trim().parse::<usize>() {
+
+    
+    let row = match chars.as_str().parse::<usize>() {
         Ok(n) => n,
         Err(_) => return Err(CoordError::BadFormat),
     };
-    let col = (first.to_ascii_uppercase() as usize) - ('A' as usize);
-    if col >= SIZE || row_number < 1 || row_number > SIZE {
-        return Err(CoordError::BadFormat);
+
+  
+    if !('A'..='J').contains(&letter) {
+        return Err(CoordError::ColumnOutOfRange(letter));
     }
-    Ok((row_number - 1, col))
+    if row < 1 || row > 10 {
+        return Err(CoordError::RowOutOfRange(row));
+    }
+
+  
+    let col = (letter as u8 - b'A') as usize;
+    Ok((row - 1, col))
 }
 
 // One character per cell. Ships are hidden unless `reveal` is true.

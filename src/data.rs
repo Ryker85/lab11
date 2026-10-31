@@ -66,7 +66,17 @@ pub enum BoardError {
 // character or counts the variant carries, and use SIZE instead of typing 10.
 impl fmt::Display for BoardError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TODO: {self:?}")
+        match self {
+            BoardError::WrongRowWidth { line, found } => {
+                write!(f, "line {} has {} characters, but every board row needs {}", line, found, SIZE)
+            }
+            BoardError::BadChar { line, ch } => {
+                write!(f, "line {} has '{}', but a board row can only use '.' and 'S'", line, ch)
+            }
+            BoardError::WrongRowCount(n) => {
+                write!(f, "the board has {} rows, but it needs exactly {}", n, SIZE)
+            }
+        }
     }
 }
 
@@ -218,31 +228,39 @@ pub fn load_fleet(path: &str) -> Result<FleetReport, DataError> {
 // (enumerate() starts at 0). WrongRowCount(n) carries how many rows were found.
 pub fn parse_board(text: &str) -> Result<Board, BoardError> {
     let mut board = new_board();
-    let mut row = 0;
-    for line in text.lines() {
-        let line = line.trim();
+    let mut rows = 0;
+
+    for (index, raw) in text.lines().enumerate() {
+        let line_number = index + 1;
+        let line = raw.trim();
+
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if row >= SIZE {
-            return Err(BoardError::WrongRowCount(row));
+
+        let found = line.chars().count();
+        if found != SIZE {
+            return Err(BoardError::WrongRowWidth { line: line_number, found });
         }
-        let chars: Vec<char> = line.chars().collect();
-        if chars.len() != SIZE {
-            return Err(BoardError::WrongRowCount(row));
-        }
-        for col in 0..SIZE {
-            match chars[col] {
-                '.' => board[row][col] = Cell::Water,
-                'S' => board[row][col] = Cell::Ship,
-                _ => return Err(BoardError::WrongRowCount(row)),
+
+        for (col, ch) in line.chars().enumerate() {
+            let cell = match ch {
+                '.' => Cell::Water,
+                'S' => Cell::Ship,
+                _ => return Err(BoardError::BadChar { line: line_number, ch }),
+            };
+           
+            if rows < SIZE {
+                board[rows][col] = cell;
             }
         }
-        row += 1;
+        rows += 1;
     }
-    if row != SIZE {
-        return Err(BoardError::WrongRowCount(row));
+
+    if rows != SIZE {
+        return Err(BoardError::WrongRowCount(rows));
     }
+
     Ok(board)
 }
 

@@ -198,10 +198,10 @@ pub fn load_fleet(path: &str) -> Result<FleetReport, DataError> {
     let mut skipped = Vec::new();
 
     for (index, line) in contents.lines().enumerate() {
-        let line_number = index + 1; // enumerate starts at 0, file lines start at 1
+        let line_number = index + 1;  
         let trimmed = line.trim();
 
-        // Blank and comment lines are skipped silently, but they still count.
+     
         if trimmed.is_empty() || trimmed.starts_with('#') {
             continue;
         }
@@ -268,14 +268,9 @@ pub fn parse_board(text: &str) -> Result<Board, BoardError> {
 // TODO (Task 6): this works, but it is long. Rewrite the body as three lines
 // that use `?` twice, with no match: the From impls above do the conversion.
 pub fn load_board(path: &str) -> Result<Board, DataError> {
-    let text = match fs::read_to_string(path) {
-        Ok(text) => text,
-        Err(e) => return Err(DataError::Io(e)),
-    };
-    match parse_board(&text) {
-        Ok(board) => Ok(board),
-        Err(e) => Err(DataError::Board(e)),
-    }
+    let text = fs::read_to_string(path)?;
+    let board = parse_board(&text)?;
+    Ok(board)
 }
 
 // A missing file is normal on the first run: Ok with an empty Vec.

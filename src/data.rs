@@ -280,15 +280,18 @@ pub fn load_board(path: &str) -> Result<Board, DataError> {
 pub fn load_scores(path: &str) -> Result<Vec<ScoreRecord>, DataError> {
     let text = match fs::read_to_string(path) {
         Ok(text) => text,
-        Err(_) => return Ok(Vec::new()),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(DataError::Io(e)),
     };
-    let mut records = Vec::new();
+
+    let mut scores = Vec::new();
     for line in text.lines() {
         if let Some(record) = parse_score(line) {
-            records.push(record);
+            scores.push(record);
         }
     }
-    Ok(records)
+
+    Ok(scores)
 }
 
 // Append "name,score" as one line, creating the file if needed.
